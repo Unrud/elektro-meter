@@ -1,0 +1,4 @@
+<resources>
+    <string name="app_name">Elektro Meter</string>
+    <string name="title_activity_settings">Camera Settings</string>
+</resources>

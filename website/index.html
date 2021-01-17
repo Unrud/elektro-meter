@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+
+<!--
+    This file is part of Elektro Meter.
+
+    Elektro Meter is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    Elektro Meter is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with Elektro Meter.  If not, see <http://www.gnu.org/licenses/>.
+-->
+
+<html lang="en">
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1" name="viewport">
+<title>Elektro Meter</title>
+<style>
+    html {
+        font-family: sans-serif;
+        user-select: none;
+        pointer-events: none;
+        background: #131722;
+        color: rgba(38,198,218,1);
+    }
+    body {
+        margin: 0;
+        padding: 0.5em;
+    }
+    body > * {
+        position: relative;
+        z-index: 2;
+    }
+    h1, .error, #loading {
+        font-size: 1.5em;
+        margin: 0.5em 0;
+    }
+    .error {
+        color: #ffc500;
+        user-select: text;
+        pointer-events: auto;
+    }
+    #reportSelector {
+        background: none;
+        color: rgba(38,198,218,1);
+        border: none;
+        font-size: 1em;
+        font-weight: normal;
+        font-family: sans-serif;
+        appearance: none;
+        -webkit-appearance: none;
+        cursor: pointer;
+        text-align: left;
+        text-align-last: left;
+        padding: 0;
+        pointer-events: auto;
+    }
+    #reportSelector:hover {
+        text-decoration: underline;
+    }
+    #reportSelector option {
+        color: initial;
+        font-size: initial;
+        font-weight: initial;
+        font-family: initial;
+        cursor: initial;
+        padding: 0;
+    }
+    .hidden {
+        display: none;
+    }
+    .tv-lightweight-charts {
+        position: absolute;
+        top: 0;
+        left: 0;
+        z-index: 1;
+        pointer-events: auto;
+    }
+</style>
+<script src='lightweight-charts.standalone.production.js'></script>
+<script>
+    (function() {
+    'use strict';
+
+    // ===== Settings =====
+    const cz = 1; // Meter constant
+    // === End Settings ===
+
+    function timeCalculatorTimestamp(date) {
+        // HACK: Chart library works with UTC and doesn't support custom timeFormatter
+        return date.valueOf() / 1000 - date.getTimezoneOffset() * 60;
+    }
+    function timeCalculatorDate(date) {
+        return date.getFullYear().toString() + '-' + (date.getMonth() + 1).toString() + '-' + date.getDate().toString();
+    }
+    function priceCalculatorWatt(startDate, endDate, energy) {
+        return energy * 1000 / (endDate.valueOf() - startDate.valueOf());
+    }
+    function priceCalculatorKilowattHour(startDate, endDate, energy) {
+        return energy / 1000 / 3600;
+    }
+    const reports = [
+        {
+            title: 'raw data',
+            default: false,
+            direct: true,
+            timeVisible: true,
+            secondsVisible: true,
+            timeCalculator: timeCalculatorTimestamp,
+            priceFormatter: (price) => { return price.toFixed(0) + ' W'; },
+            priceCalculator: priceCalculatorWatt,
+            increment: null,
+            start: null,
+        },
+        {
+            title: 'minutes',
+            default: false,
+            direct: false,
+            timeVisible: true,
+            secondsVisible: false,
+            timeCalculator: timeCalculatorTimestamp,
+            priceFormatter: (price) => { return price.toFixed(0) + ' W'; },
+            priceCalculator: priceCalculatorWatt,
+            increment: (date, n) => { date.setMinutes(date.getMinutes() + n); },
+            start: (date) => { date.setMilliseconds(0); date.setSeconds(0); },
+        },
+        {
+            title: 'hours',
+            default: true,
+            direct: false,
+            timeVisible: true,
+            secondsVisible: false,
+            timeCalculator: timeCalculatorTimestamp,
+            priceFormatter: (price) => { return price.toFixed(0) + ' W'; },
+            priceCalculator: priceCalculatorWatt,
+            increment: (date, n) => { date.setHours(date.getHours() + n); },
+            start: (date) => { date.setMilliseconds(0); date.setSeconds(0); date.setMinutes(0); },
+        },
+        {
+            title: 'days',
+            default: false,
+            direct: false,
+            timeVisible: false,
+            secondsVisible: false,
+            timeCalculator: timeCalculatorDate,
+            priceFormatter: (price) => { return price.toFixed(1) + ' kWh'; },
+            priceCalculator: priceCalculatorKilowattHour,
+            increment: (date, n) => { date.setDate(date.getDate() + n); },
+            start: (date) => { date.setMilliseconds(0); date.setSeconds(0); date.setMinutes(0); date.setHours(0); },
+        },
+        {
+            title: 'months',
+            default: false,
+            direct: false,
+            timeVisible: false,
+            secondsVisible: false,
+            timeCalculator: timeCalculatorDate,
+            priceFormatter: (price) => { return price.toFixed(0) + ' kWh'; },
+            priceCalculator: priceCalculatorKilowattHour,
+            increment: (date, n) => { date.setMonth(date.getMonth() + n); },
+            start: (date) => { date.setMilliseconds(0); date.setSeconds(0); date.setMinutes(0); date.setHours(0); date.setDate(1); },
+        },
+        {
+            title: 'years',
+            default: false,
+            direct: false,
+            timeVisible: false,
+            secondsVisible: false,
+            timeCalculator: timeCalculatorDate,
+            priceFormatter: (price) => { return price.toFixed(0) + ' kWh'; },
+            priceCalculator: priceCalculatorKilowattHour,
+            increment: (date, n) => { date.setFullYear(date.getFullYear() + n); },
+            start: (date) => { date.setMilliseconds(0); date.setSeconds(0); date.setMinutes(0); date.setHours(0); date.setDate(1); date.setMonth(0); },
+        },
+    ];
+
+    window.addEventListener('load', (event) => {
+        let errorElement = document.querySelector('#error');
+        let loadingElement = document.querySelector('#loading');
+        let reportSelectorElement = document.querySelector('#reportSelector');
+        try {
+            LightweightCharts; // check availability
+        } catch (error) {
+            console.error(error);
+            errorElement.textContent = error;
+            errorElement.classList.remove('hidden');
+            loadingElement.classList.add('hidden');
+            return;
+        }
+        let chart = LightweightCharts.createChart(document.body, {
+            layout: {
+                backgroundColor: '#131722',
+                textColor: '#d1d4dc',
+            },
+            grid: {
+                vertLines: {
+                    color: 'rgba(42, 46, 57, 0)',
+                },
+                horzLines: {
+                    color: 'rgba(42, 46, 57, 0.6)',
+                },
+            },
+            rightPriceScale: {
+                borderVisible: false,
+            },
+        });
+        let chartElement = document.querySelector('.tv-lightweight-charts');
+        chartElement.classList.add('hidden');
+        window.onresize = () => {
+            chart.applyOptions({
+                width: window.innerWidth,
+                height: window.innerHeight,
+            });
+        };
+        window.onresize();
+        let areaSeries = chart.addAreaSeries({
+            topColor: 'rgba(38,198,218, 0.56)',
+            bottomColor: 'rgba(38,198,218, 0.04)',
+            lineColor: 'rgba(38,198,218, 1)',
+            lineWidth: 2,
+        });
+
+        function populateSeries(log) {
+            let reportsData = reports.map((_) => []);
+            let previousTime = null;
+            let initialized = false;
+            let rangeStart = [];
+            let rangeEnd = [];
+            let rangeEnergy = [];
+            for (let line of log.split('\n')) {
+                line = line.trim();
+                if (line.length == 0)
+                    continue;
+                let time = new Date(parseInt(line) * 1000);
+                if (previousTime != null && time <= previousTime) {
+                    console.warn('invalid time stamp: ' + line);
+                    continue;
+                }
+                if (!initialized) {
+                    for (const report of reports) {
+                        if (report.direct) {
+                            rangeStart.push(null);
+                            rangeEnd.push(null);
+                            rangeEnergy.push(null);
+                            continue;
+                        }
+                        let startDate = new Date(time);
+                        report.start(startDate);
+                        let endDate = new Date(startDate);
+                        report.increment(endDate, 1);
+                        rangeStart.push(startDate);
+                        rangeEnd.push(endDate);
+                        rangeEnergy.push(0);
+                    }
+                    initialized = true;
+                }
+                if (previousTime != null) {
+                    let timeDiff = time.valueOf() - previousTime.valueOf();
+                    let energy = 1000 / cz * 3600; // Ws
+                    for (let i = 0; i < reports.length; i++) {
+                        const report = reports[i];
+                        if (report.direct) {
+                            reportsData[i].push({
+                                time: report.timeCalculator(time),
+                                value: report.priceCalculator(previousTime, time, energy),
+                            });
+                            continue;
+                        }
+                        let start = Math.max(previousTime.valueOf(), rangeStart[i].valueOf());
+                        let end = Math.min(time.valueOf(), rangeEnd[i].valueOf());
+                        rangeEnergy[i] += energy * ((end - start) / timeDiff);
+                        while (time >= rangeEnd[i]) {
+                            reportsData[i].push({
+                                time: report.timeCalculator(rangeStart[i]),
+                                value: report.priceCalculator(rangeStart[i], rangeEnd[i], rangeEnergy[i]),
+                            });
+                            [rangeStart[i], rangeEnd[i]] = [rangeEnd[i], rangeStart[i]];
+                            report.increment(rangeEnd[i], 2);
+                            rangeEnergy[i] = 0;
+                            let start = rangeStart[i].valueOf();
+                            let end = Math.min(time.valueOf(), rangeEnd[i].valueOf());
+                            rangeEnergy[i] += energy * ((end - start) / timeDiff);
+                        }
+                    }
+                }
+                previousTime = time;
+            }
+            if (initialized) {
+                for (let i = 0; i < reports.length; i++) {
+                    const report = reports[i];
+                    if (report.direct)
+                        continue;
+                    reportsData[i].push({
+                        time: report.timeCalculator(rangeStart[i]),
+                        value: report.priceCalculator(rangeStart[i], rangeEnd[i], rangeEnergy[i]),
+                    });
+                }
+            }
+            reportSelectorElement.onchange = null;
+            while (reportSelectorElement.firstChild)
+                reportSelectorElement.removeChild(reportSelectorElement.firstChild);
+            for (let i = 0; i < reports.length; i++) {
+                const report = reports[i];
+                let optionElement = document.createElement('option');
+                optionElement.textContent = report.title;
+                reportSelectorElement.appendChild(optionElement);
+                if (report.default)
+                    reportSelectorElement.selectedIndex = i;
+            }
+            reportSelectorElement.onchange = () => {
+                const i = reportSelectorElement.selectedIndex;
+                areaSeries.setData([]);
+                if (i < 0)
+                    return;
+                const report = reports[i];
+                chart.applyOptions({
+                    timeScale: {
+                        timeVisible: report.timeVisible,
+                        secondsVisible: report.secondsVisible,
+                    },
+                    localization: {
+                        priceFormatter: report.priceFormatter,
+                    },
+                });
+                chart.timeScale().resetTimeScale();
+                chart.priceScale('right').applyOptions({
+                    autoScale: true,
+                });
+                areaSeries.setData(reportsData[i]);
+            };
+            reportSelectorElement.onchange();
+        }
+
+        let xhr = new XMLHttpRequest();
+        xhr.onreadystatechange = () => {
+            if (xhr.readyState == 4) {
+                if (xhr.status == 200) {
+                    try {
+                        populateSeries(xhr.responseText);
+                        reportSelectorElement.classList.remove('hidden');
+                        chartElement.classList.remove('hidden');
+                    } catch (error) {
+                        console.error(error);
+                        errorElement.textContent = error;
+                        errorElement.classList.remove('hidden');
+                    }
+                } else {
+                    errorElement.textContent = 'Error: ' + xhr.statusText;
+                    errorElement.classList.remove('hidden');
+                }
+                loadingElement.classList.add('hidden');
+            }
+        };
+        xhr.open('GET', 'ElektroMeter.log');
+        xhr.send();
+    });
+
+    })();
+</script>
+<h1>Elektro Meter</h1>
+<p id="loading">Loading…</p>
+<p class="error hidden" id="error">Error</p>
+<noscript><p class="error">Error: JavaScript is required!</p></noscript>
+<select class="hidden" id="reportSelector"></select>

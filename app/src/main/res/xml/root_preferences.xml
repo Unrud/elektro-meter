@@ -1,0 +1,61 @@
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto" >
+    <PreferenceCategory app:title="Camera">
+        <ListPreference
+            android:key="cameraRotation"
+            android:title="Rotation"
+            android:entries="@array/rotation_values"
+            android:entryValues="@array/rotation_values"
+            android:defaultValue="0" />
+        <SwitchPreference
+            android:key="cameraFlash"
+            android:title="Flash"
+            android:defaultValue="false" />
+        <EditTextPreference
+            android:key="cameraExposureCompensation"
+            android:title="Exposure Compensation"
+            android:defaultValue="0" />
+    </PreferenceCategory>
+    <PreferenceCategory app:title="Window">
+        <EditTextPreference
+            android:key="windowHeight"
+            android:title="Height (0-100)"
+            android:defaultValue="10" />
+        <EditTextPreference
+            android:key="windowOffset"
+            android:title="Offset From Top (0-100)"
+            android:defaultValue="45" />
+    </PreferenceCategory>
+    <PreferenceCategory app:title="Color">
+        <EditTextPreference
+            android:key="colorBlueProjection"
+            android:title="Blue Projection (0-100)"
+            android:defaultValue="40" />
+        <EditTextPreference
+            android:key="colorRedProjection"
+            android:title="Red Projection (0-100)"
+            android:defaultValue="83" />
+        <EditTextPreference
+            android:key="colorDistanceThreshold"
+            android:title="Distance Threshold (0-100) (Lower is less sensitive)"
+            android:defaultValue="20" />
+        <EditTextPreference
+            android:key="colorLumaThreshold"
+            android:title="Luma Threshold (0-100) (Lower is more sensitive)"
+            android:defaultValue="25" />
+    </PreferenceCategory>
+    <PreferenceCategory app:title="Trigger">
+        <EditTextPreference
+            android:key="triggerFillThreshold"
+            android:title="Fill Threshold (0-100) (Lower is more sensitive)"
+            android:defaultValue="10" />
+        <EditTextPreference
+            android:key="triggerFillResetThreshold"
+            android:title="Fill Reset Threshold (0-100) (Lower is less sensitive)"
+            android:defaultValue="5" />
+        <EditTextPreference
+            android:key="triggerResetTime"
+            android:title="Reset Time (milliseconds) (Lower is more sensitive)"
+            android:defaultValue="500" />
+    </PreferenceCategory>
+</PreferenceScreen>
