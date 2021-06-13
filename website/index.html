@@ -127,7 +127,7 @@
             timeCalculator: timeCalculatorTimestamp,
             priceFormatter: (price) => { return price.toFixed(0) + ' W'; },
             priceCalculator: priceCalculatorWatt,
-            increment: (date, n) => { date.setMinutes(date.getMinutes() + n); },
+            increment: (date) => { date.setMinutes(date.getMinutes() + 1); },
             start: (date) => { date.setMilliseconds(0); date.setSeconds(0); },
         },
         {
@@ -139,7 +139,7 @@
             timeCalculator: timeCalculatorTimestamp,
             priceFormatter: (price) => { return price.toFixed(0) + ' W'; },
             priceCalculator: priceCalculatorWatt,
-            increment: (date, n) => { date.setHours(date.getHours() + n); },
+            increment: (date) => { date.setHours(date.getHours() + 1); },
             start: (date) => { date.setMilliseconds(0); date.setSeconds(0); date.setMinutes(0); },
         },
         {
@@ -151,7 +151,7 @@
             timeCalculator: timeCalculatorDate,
             priceFormatter: (price) => { return price.toFixed(1) + ' kWh'; },
             priceCalculator: priceCalculatorKilowattHour,
-            increment: (date, n) => { date.setDate(date.getDate() + n); },
+            increment: (date) => { date.setDate(date.getDate() + 1); },
             start: (date) => { date.setMilliseconds(0); date.setSeconds(0); date.setMinutes(0); date.setHours(0); },
         },
         {
@@ -163,7 +163,7 @@
             timeCalculator: timeCalculatorDate,
             priceFormatter: (price) => { return price.toFixed(0) + ' kWh'; },
             priceCalculator: priceCalculatorKilowattHour,
-            increment: (date, n) => { date.setMonth(date.getMonth() + n); },
+            increment: (date) => { date.setMonth(date.getMonth() + 1); },
             start: (date) => { date.setMilliseconds(0); date.setSeconds(0); date.setMinutes(0); date.setHours(0); date.setDate(1); },
         },
         {
@@ -175,7 +175,7 @@
             timeCalculator: timeCalculatorDate,
             priceFormatter: (price) => { return price.toFixed(0) + ' kWh'; },
             priceCalculator: priceCalculatorKilowattHour,
-            increment: (date, n) => { date.setFullYear(date.getFullYear() + n); },
+            increment: (date) => { date.setFullYear(date.getFullYear() + 1); },
             start: (date) => { date.setMilliseconds(0); date.setSeconds(0); date.setMinutes(0); date.setHours(0); date.setDate(1); date.setMonth(0); },
         },
     ];
@@ -253,7 +253,7 @@
                         let startDate = new Date(time);
                         report.start(startDate);
                         let endDate = new Date(startDate);
-                        report.increment(endDate, 1);
+                        report.increment(endDate);
                         rangeStart.push(startDate);
                         rangeEnd.push(endDate);
                         rangeEnergy.push(0);
@@ -280,8 +280,8 @@
                                 time: report.timeCalculator(rangeStart[i]),
                                 value: report.priceCalculator(rangeStart[i], rangeEnd[i], rangeEnergy[i]),
                             });
-                            [rangeStart[i], rangeEnd[i]] = [rangeEnd[i], rangeStart[i]];
-                            report.increment(rangeEnd[i], 2);
+                            report.increment(rangeStart[i]);
+                            report.increment(rangeEnd[i]);
                             rangeEnergy[i] = 0;
                             let start = rangeStart[i].valueOf();
                             let end = Math.min(time.valueOf(), rangeEnd[i].valueOf());
