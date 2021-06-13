@@ -87,7 +87,7 @@ You can find the value written on your electricity meter.
 
 Copy the file *website/index.html* to your phone and place it in the folder *~/html/*.
 Additionally you need to download
-[**lightweight-charts.standalone.production.js**](https://unpkg.com/lightweight-charts@3.2.0/dist/lightweight-charts.standalone.production.js)
+[**lightweight-charts.standalone.production.js**](https://unpkg.com/lightweight-charts@3.3.0/dist/lightweight-charts.standalone.production.js)
 and put it in the folder too.
 
 To start the webserver on boot create the file *~/.termux/boot/start-nginx*:
