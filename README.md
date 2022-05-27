@@ -24,12 +24,12 @@ of the maker.
 
 To simplify the process of finding the right settings wait until the marker
 comes into view and press the **Dump** button. It creates the file
-**ElektroMeter.dump** in the internal storage.
+**ElektroMeter.dump.png** in the internal storage.
 
-Copy the file to your computer and run `./dump-inspector.py /path/to/ElektroMeter.dump`.
+Copy the file to your computer and run `./dump-inspector.py /path/to/ElektroMeter.dump.png`.
 It creates a series of images that can be used to quickly determine good parameters.
 Run `./dump-inspector.py --help` to see the arguments for changing the default parameters
-(e.g. run `./dump-inspector.py /path/to/ElektroMeter.dump --rotation 90 --luma 10`
+(e.g. run `./dump-inspector.py /path/to/ElektroMeter.dump.png --rotation 90 --luma 10`
 and check the generated images again).
 
 ### Web server

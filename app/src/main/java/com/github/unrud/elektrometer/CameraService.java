@@ -242,34 +242,43 @@ public class CameraService extends Service {
 
         if (dumpRequested) {
             dumpRequested = false;
-            File dumpFile = new File(Environment.getExternalStorageDirectory(), "ElektroMeter.dump");
-            try (
-                    FileOutputStream dumpStream = new FileOutputStream(dumpFile)) {
-                dumpStream.write(("" +
-                        "format:YUV_420_888\n" +
-                        "width:" + image.getWidth() + "\n" +
-                        "height:" + image.getHeight() + "\n" +
-                        "y_row_stride:" + yPlane.getRowStride() + "\n" +
-                        "y_pixel_stride:" + yPlane.getPixelStride() + "\n" +
-                        "y_length:" + yBuffer.remaining() + "\n" +
-                        "u_row_stride:" + uPlane.getRowStride() + "\n" +
-                        "u_pixel_stride:" + uPlane.getPixelStride() + "\n" +
-                        "u_length:" + uBuffer.remaining() + "\n" +
-                        "v_row_stride:" + vPlane.getRowStride() + "\n" +
-                        "v_pixel_stride:" + vPlane.getPixelStride() + "\n" +
-                        "v_length:" + vBuffer.remaining() + "\n").getBytes(FILE_CHARSET));
-                dumpStream.getChannel().write(yBuffer);
-                yBuffer.rewind();
-                dumpStream.getChannel().write(uBuffer);
-                uBuffer.rewind();
-                dumpStream.getChannel().write(vBuffer);
-                vBuffer.rewind();
-            } catch (FileNotFoundException e) {
-                fatal("failed to open dump file", e);
+            Bitmap dump = Bitmap.createBitmap(image.getWidth(), image.getHeight(), Bitmap.Config.ARGB_8888);
+            Bitmap dumpColor = Bitmap.createBitmap(image.getWidth(), image.getHeight(), Bitmap.Config.ARGB_8888);
+            for (int y = 0; y < image.getHeight(); y++) {
+                for (int x = 0; x < image.getWidth(); x++) {
+                    int pixelY = yBuffer.get(y * yPlane.getRowStride() + x * yPlane.getPixelStride()) & 0xff;
+                    int pixelU = uBuffer.get((y / 2) * uPlane.getRowStride() + (x / 2) * uPlane.getPixelStride()) & 0xff;
+                    int pixelV = vBuffer.get((y / 2) * vPlane.getRowStride() + (x / 2) * vPlane.getPixelStride()) & 0xff;
+                    dump.setPixel(x, y, 255 << 24 | pixelV << 16 | pixelY << 8 | pixelU);
+                    // Convert from JPEG YUV to RGB color space using 16.16 fixed point math
+                    int pixelY1 = 65536 * pixelY;
+                    int pixelR = Math.max(0, Math.min(255, pixelY1 + 91881 * pixelV - 11760828 >> 16));
+                    int pixelG = Math.max(0, Math.min(255, pixelY1 - 22553 * pixelU - 46802 * pixelV + 8877429 >> 16));
+                    int pixelB = Math.max(0, Math.min(255, pixelY1 + 116130 * pixelU - 14864613 >> 16));
+                    dumpColor.setPixel(x, y, 255 << 24 | pixelR << 16 | pixelG << 8 | pixelB);
+                }
+            }
+            yBuffer.rewind();
+            uBuffer.rewind();
+            vBuffer.rewind();
+            File dumpFile = new File(Environment.getExternalStorageDirectory(), "ElektroMeter.dump.png");
+            File dumpColorFile = new File(Environment.getExternalStorageDirectory(), "ElektroMeter.dump.color.png");
+            File dumpInfoFile = new File(Environment.getExternalStorageDirectory(), "ElektroMeter.dump.txt");
+            try (FileOutputStream outputStream = new FileOutputStream(dumpFile);
+                 FileOutputStream colorOutputStream = new FileOutputStream(dumpColorFile);
+                 FileOutputStream infoOutputStream = new FileOutputStream(dumpInfoFile)) {
+                if (!dump.compress(Bitmap.CompressFormat.PNG, 0, outputStream)
+                        || !dumpColor.compress(Bitmap.CompressFormat.PNG, 0, colorOutputStream)) {
+                    fatal("failed to compress image");
+                }
+                infoOutputStream.write(("Channel Mapping:\n" +
+                        "* R: Red Projection (V)\n" +
+                        "* G: Luma (Y)\n" +
+                        "* B: Blue Projection (U)\n").getBytes());
             } catch (IOException e) {
                 fatal("failed to write dump file", e);
             }
-            Toast.makeText(this, "dumped to " + dumpFile.getPath(), Toast.LENGTH_LONG).show();
+            Toast.makeText(this, "Dumped to " + dumpFile.getPath(), Toast.LENGTH_LONG).show();
         }
 
         if (!cameraSettings.load()) {
